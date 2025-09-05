@@ -27,7 +27,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -116,23 +116,32 @@ export default function NewProjectPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 w-full" suppressHydrationWarning>
+    <div
+      className="container mx-auto w-full px-2 pb-2"
+      suppressHydrationWarning
+    >
       <div className="mb-6">
-        <div className="flex items-center gap-4 mb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Proyek Baru</h1>
+            <p className="text-gray-600">Buat proyek baru untuk customer</p>
+          </div>
           <Link href="/projects">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Kembali
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Cancel
             </Button>
           </Link>
         </div>
-        <h1 className="text-2xl font-bold">Proyek Baru</h1>
-        <p className="text-gray-600">Buat proyek baru untuk customer</p>
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
-          <Card className="w-full">
+          <Card className="w-full pt-6 pb-6">
             <CardHeader>
               <CardTitle>Informasi Proyek</CardTitle>
             </CardHeader>

@@ -10,13 +10,13 @@ import {
   Calendar,
   DollarSign,
   Users,
-  MoreVertical,
   Search,
   Loader2,
 } from "lucide-react";
 import { useProjects } from "@/hooks/use-projects";
 import { useProjectContext } from "@/contexts/project-context";
 import { useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
 import type { Project } from "@/lib/types";
 import { formatCurrency, formatDateShort } from "@/lib/utils/format";
 
@@ -24,36 +24,22 @@ export default function ProjectsPage() {
   const { projects, loading, error } = useProjects();
   const { setSelectedProject } = useProjectContext();
   const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter projects based on search query
+  const filteredProjects = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return projects;
+    }
+
+    return projects.filter((project) =>
+      project.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [projects, searchQuery]);
 
   const handleProjectSelect = (project: Project) => {
     setSelectedProject(project);
     router.push(`/projects/${project.id}`);
-  };
-
-  const getStatusBadge = (status: string = "planning") => {
-    const statusMap = {
-      planning: {
-        label: "Perencanaan",
-        className: "bg-blue-100 text-blue-800",
-      },
-      "in-progress": {
-        label: "Berlangsung",
-        className: "bg-yellow-100 text-yellow-800",
-      },
-      completed: { label: "Selesai", className: "bg-green-100 text-green-800" },
-      "on-hold": { label: "Ditunda", className: "bg-gray-100 text-gray-800" },
-      cancelled: { label: "Dibatalkan", className: "bg-red-100 text-red-800" },
-    };
-
-    const statusInfo =
-      statusMap[status as keyof typeof statusMap] || statusMap.planning;
-    return (
-      <span
-        className={`px-2 py-1 rounded-full text-xs font-medium ${statusInfo.className}`}
-      >
-        {statusInfo.label}
-      </span>
-    );
   };
 
   if (loading) {
@@ -76,7 +62,7 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="px-6 pb-6 space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -95,20 +81,25 @@ export default function ProjectsPage() {
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <Input placeholder="Cari proyek..." className="pl-10" />
+          <Input
+            placeholder="Cari proyek..."
+            className="pl-10"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
 
       {/* Projects Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map((project) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredProjects.map((project) => (
           <Card
             key={project.id}
-            className="hover:shadow-lg transition-shadow cursor-pointer"
+            className="hover:shadow-lg transition-shadow cursor-pointer pt-6 pb-2"
           >
-            <CardHeader className="space-y-2">
+            <CardHeader>
               <div className="flex items-start justify-between">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
                     <FolderOpen className="w-4 h-4 text-emerald-600" />
                   </div>
@@ -118,19 +109,18 @@ export default function ProjectsPage() {
                     </CardTitle>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                {/* <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                   <MoreVertical className="w-4 h-4" />
-                </Button>
+                </Button> */}
               </div>
-              {getStatusBadge()}
             </CardHeader>
 
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-600 line-clamp-2">
+            <CardContent className="pt-0 pb-4 space-y-2">
+              {/* <p className="text-sm text-gray-600 line-clamp-2">
                 {project.description}
-              </p>
+              </p> */}
 
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <div className="flex items-center text-sm text-gray-500">
                   <Users className="w-4 h-4 mr-2" />
                   {project.customer_name || "No customer"}
@@ -151,6 +141,7 @@ export default function ProjectsPage() {
               <div className="pt-2 border-t">
                 <Button
                   variant="outline"
+                  size="sm"
                   className="w-full"
                   onClick={() => handleProjectSelect(project)}
                 >
@@ -180,6 +171,22 @@ export default function ProjectsPage() {
           </Link>
         </div>
       )}
+
+      {/* No Search Results */}
+      {projects.length > 0 &&
+        filteredProjects.length === 0 &&
+        searchQuery.trim() && (
+          <div className="text-center py-12">
+            <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Tidak ada proyek ditemukan
+            </h3>
+            <p className="text-gray-600">
+              Tidak ada proyek yang cocok dengan pencarian &ldquo;{searchQuery}
+              &rdquo;
+            </p>
+          </div>
+        )}
     </div>
   );
 }

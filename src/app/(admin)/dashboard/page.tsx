@@ -11,7 +11,7 @@ import { FolderOpen, DollarSign, Users, TrendingUp, Plus } from "lucide-react";
 
 export default function DashboardPage() {
   return (
-    <div className="p-6 space-y-8">
+    <div className="px-6 pb-6 space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -29,52 +29,52 @@ export default function DashboardPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 pt-4">
             <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
               <FolderOpen className="h-4 w-4 text-emerald-600 mr-2" />
               Total Proyek
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-4">
             <div className="text-2xl font-bold">12</div>
             <p className="text-xs text-green-600">+2 dari bulan lalu</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 pt-4">
             <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
               <DollarSign className="h-4 w-4 text-blue-600 mr-2" />
               Total Budget
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-4">
             <div className="text-2xl font-bold">Rp 2.4M</div>
             <p className="text-xs text-green-600">+12% dari bulan lalu</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 pt-4">
             <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
               <Users className="h-4 w-4 text-purple-600 mr-2" />
               Proyek Aktif
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-4">
             <div className="text-2xl font-bold">8</div>
             <p className="text-xs text-gray-500">sedang berjalan</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 pt-4">
             <CardTitle className="text-sm font-medium text-gray-600 flex items-center">
               <TrendingUp className="h-4 w-4 text-orange-600 mr-2" />
               Invoice Pending
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-4">
             <div className="text-2xl font-bold">5</div>
             <p className="text-xs text-gray-500">menunggu pembayaran</p>
           </CardContent>
@@ -91,13 +91,13 @@ export default function DashboardPage() {
 
         <TabsContent value="projects">
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3 pt-6">
               <CardTitle>Proyek Terbaru</CardTitle>
               <CardDescription>
                 5 proyek yang baru dibuat atau diupdate
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0 pb-4">
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
                   <div
@@ -132,11 +132,11 @@ export default function DashboardPage() {
 
         <TabsContent value="rab">
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3 pt-6">
               <CardTitle>RAB Terbaru</CardTitle>
               <CardDescription>Item RAB yang baru ditambahkan</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0 pb-4">
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
                   <div
@@ -166,13 +166,13 @@ export default function DashboardPage() {
 
         <TabsContent value="invoices">
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3 pt-6">
               <CardTitle>Invoice Terbaru</CardTitle>
               <CardDescription>
                 Invoice yang baru dibuat atau diupdate
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0 pb-4">
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
                   <div

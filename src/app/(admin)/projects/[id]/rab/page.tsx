@@ -153,7 +153,7 @@ export default function RABPage() {
       </div>
 
       {/* RAB Items Table */}
-      <Card>
+      <Card className="pt-6 pb-6">
         <CardHeader>
           <CardTitle>Daftar RAB</CardTitle>
         </CardHeader>

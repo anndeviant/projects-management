@@ -58,20 +58,35 @@ export async function middleware(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     const pathname = request.nextUrl.pathname
 
-    // Define protected routes
+    // Define protected routes - make sure to include all admin paths
     const adminRoutes = ['/dashboard', '/projects']
     const authRoutes = ['/login']
 
-    // Check if current path is an admin route
-    const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route))
+    // Check if current path is an admin route (including nested paths)
+    const isAdminRoute = adminRoutes.some(route =>
+        pathname.startsWith(route)
+    )
     const isAuthRoute = authRoutes.some(route => pathname.startsWith(route))
+
+    // Special handling for root path
+    const isRootPath = pathname === '/'
+    const hasGuestParam = request.nextUrl.searchParams.has('guest')
 
     // If user is not authenticated
     if (!user) {
         // If trying to access admin routes, redirect to login
         if (isAdminRoute) {
+            const redirectUrl = new URL('/login', request.url)
+            // Add original path as redirect parameter
+            redirectUrl.searchParams.set('redirect', pathname)
+            return NextResponse.redirect(redirectUrl)
+        }
+
+        // If on root path without guest param, redirect to login
+        if (isRootPath && !hasGuestParam) {
             return NextResponse.redirect(new URL('/login', request.url))
         }
+
         // Allow access to auth routes and guest routes
         return response
     }

@@ -6,9 +6,10 @@ export interface User {
     role: 'admin' | 'guest'
 }
 
-export const signIn = async (email: string, password: string) => {
-    const supabase = createClient()
+// Cache the supabase client instance
+const supabase = createClient();
 
+export const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -22,17 +23,38 @@ export const signIn = async (email: string, password: string) => {
 }
 
 export const signOut = async () => {
-    const supabase = createClient()
+    // Sign out from Supabase
     const { error } = await supabase.auth.signOut()
 
     if (error) {
         throw new Error(error.message)
     }
+
+    // Clear any localStorage items
+    if (typeof window !== 'undefined') {
+        // Clear all auth-related localStorage items
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('supabase') || key.includes('auth'))) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+
+        // Clear sessionStorage as well
+        const sessionKeysToRemove = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            if (key && (key.startsWith('supabase') || key.includes('auth'))) {
+                sessionKeysToRemove.push(key);
+            }
+        }
+        sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key));
+    }
 }
 
 export const getCurrentUser = async (): Promise<User | null> => {
-    const supabase = createClient()
-
     const { data: { user }, error } = await supabase.auth.getUser()
 
     if (error || !user) {
@@ -48,7 +70,6 @@ export const getCurrentUser = async (): Promise<User | null> => {
 }
 
 export const getSession = async () => {
-    const supabase = createClient()
     const { data: { session }, error } = await supabase.auth.getSession()
 
     if (error) {

@@ -1,13 +1,7 @@
-import LoginForm from "@/components/auth/login-form";
+import LoginFormWrapper from "@/components/auth/login-form-wrapper";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  HelpCircle,
-  FolderOpen,
-  Calendar,
-  Users,
-  BarChart3,
-} from "lucide-react";
+import { FolderOpen, Calendar, Users, BarChart3 } from "lucide-react";
 
 export default function LoginPage() {
   return (
@@ -15,7 +9,7 @@ export default function LoginPage() {
       {/* Left Side - Login Form */}
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-sm">
-          <LoginForm />
+          <LoginFormWrapper />
         </div>
       </div>
 

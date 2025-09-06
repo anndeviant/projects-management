@@ -81,8 +81,20 @@ const projectSpecificNavigation = [
   },
   {
     name: "Transactions",
-    href: "/projects/[id]/transactions",
+    href: "#",
     icon: Receipt,
+    children: [
+      {
+        name: "All Transactions",
+        href: "/projects/[id]/transactions",
+        icon: Receipt,
+      },
+      {
+        name: "New Transaction",
+        href: "/projects/[id]/transactions/new",
+        icon: Plus,
+      },
+    ],
   },
   {
     name: "Invoices",
@@ -245,7 +257,7 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start p-6 mb-2 bg-gray-100/70 hover:bg-gray-100 border border-gray-200/50 rounded-md",
+                      "w-full justify-start p-7 mb-2 bg-gray-100/70 hover:bg-gray-100 border border-gray-200/50 rounded-md",
                       pathname.startsWith(`/projects/${selectedProject.id}`)
                         ? "bg-emerald-100 text-emerald-700 border-emerald-200"
                         : "text-gray-700 hover:text-gray-900"
@@ -253,7 +265,7 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                   >
                     <FolderOpen className="mr-3 h-4 w-4 flex-shrink-0 mt-1" />
                     <div className="flex flex-col items-start w-full">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <p className="text-xs font-semibold text-black uppercase tracking-wider">
                         Current Project
                       </p>
                       <p className="text-sm font-medium truncate mt-1 w-full text-left">

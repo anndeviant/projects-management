@@ -27,4 +27,11 @@ export interface UpdateTransactionData extends Partial<CreateTransactionData> {
     id: string;
 }
 
-export type TransactionType = 'income' | 'expense' | 'transfer';
+export type TransactionType = 'income' | 'expense' | 'transfer' | 'adjustment';
+
+export const TRANSACTION_TYPE_OPTIONS = [
+    { value: 'income', label: 'Pemasukan' },
+    { value: 'expense', label: 'Pengeluaran' },
+    { value: 'transfer', label: 'Transfer' },
+    { value: 'adjustment', label: 'Penyesuaian' },
+] as const;

@@ -1,24 +1,55 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
+import { useState, useEffect, use } from "react";
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import Link from "next/link";
-import { ArrowLeft, Save, Calculator, Trash2 } from "lucide-react";
-import { useRABItem } from "@/hooks/use-rab";
+import { useRouter } from "next/navigation";
+import { X, Trash2, Loader2 } from "lucide-react";
+import { useRABItem, useRAB } from "@/hooks/use-rab";
+import { useProject } from "@/hooks/use-projects";
+import { formatCurrency } from "@/lib/utils/format";
+import { toast } from "sonner";
 
 interface EditRABPageProps {
-  params: {
+  params: Promise<{
     id: string;
     rabId: string;
-  };
+  }>;
 }
 
 export default function EditRABPage({ params }: EditRABPageProps) {
-  const { id, rabId } = params;
+  const { id, rabId } = use(params);
+  const router = useRouter();
   const { rabItem, loading } = useRABItem(rabId);
+  const { updateRABItem, deleteRABItem } = useRAB(id);
+  const { project } = useProject(id);
 
   const [formData, setFormData] = useState({
     item_name: "",
@@ -30,10 +61,9 @@ export default function EditRABPage({ params }: EditRABPageProps) {
     status: "planning",
   });
 
-  const project = {
-    name: "Website E-commerce Development",
-    customer: "PT. Digital Solutions",
-  };
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     if (rabItem) {
@@ -49,14 +79,6 @@ export default function EditRABPage({ params }: EditRABPageProps) {
     }
   }, [rabItem]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
   const handleInputChange = (field: string, value: string | number) => {
     setFormData((prev) => ({
       ...prev,
@@ -68,19 +90,81 @@ export default function EditRABPage({ params }: EditRABPageProps) {
     return formData.quantity * formData.unit_price + formData.shipping_tax;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement update to Supabase
-    console.log("Updating RAB item:", {
-      ...formData,
-      total_price: calculateTotal(),
-    });
+    if (!rabItem) return;
+
+    // Basic validation
+    if (!formData.item_name.trim()) {
+      toast.error("Nama item harus diisi");
+      return;
+    }
+    if (!formData.purchasing_source.trim()) {
+      toast.error("Sumber pembelian harus diisi");
+      return;
+    }
+    if (formData.quantity < 1) {
+      toast.error("Kuantitas minimal 1");
+      return;
+    }
+    if (formData.unit_price < 0) {
+      toast.error("Harga satuan tidak boleh negatif");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await updateRABItem({
+        id: rabItem.id,
+        item_name: formData.item_name,
+        purchasing_source: formData.purchasing_source,
+        quantity: formData.quantity,
+        unit_price: formData.unit_price,
+        shipping_tax: formData.shipping_tax,
+        purchase_link: formData.purchase_link || undefined,
+        status: formData.status as
+          | "planning"
+          | "pending"
+          | "ordered"
+          | "delivered"
+          | "completed",
+      });
+
+      if (error) {
+        toast.error(error);
+        return;
+      }
+
+      toast.success("Item RAB berhasil diperbarui!");
+      router.push(`/projects/${id}/rab`);
+    } catch (err) {
+      console.error("Error updating RAB item:", err);
+      toast.error("Terjadi kesalahan saat memperbarui item RAB");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleDelete = () => {
-    if (confirm("Apakah Anda yakin ingin menghapus item RAB ini?")) {
-      // TODO: Implement delete from Supabase
-      console.log("Deleting RAB item:", rabId);
+  const handleDelete = async () => {
+    if (!rabItem) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await deleteRABItem(rabItem.id);
+
+      if (error) {
+        toast.error(error);
+        return;
+      }
+
+      toast.success("Item RAB berhasil dihapus!");
+      router.push(`/projects/${id}/rab`);
+    } catch (err) {
+      console.error("Error deleting RAB item:", err);
+      toast.error("Terjadi kesalahan saat menghapus item RAB");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -109,44 +193,91 @@ export default function EditRABPage({ params }: EditRABPageProps) {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href={`/projects/${id}/rab`}>
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Kembali ke RAB
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <Calculator className="w-6 h-6 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Edit Item RAB</h1>
+    <div
+      className="container mx-auto w-full px-2 pb-2"
+      suppressHydrationWarning
+    >
+      <div className="mb-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Edit Item RAB</h1>
+            <p className="text-gray-600">
+              {project?.name || "Loading project..."} -{" "}
+              {project?.customer_name || ""}
+            </p>
           </div>
-          <p className="text-gray-600">
-            {project.name} - {project.customer}
-          </p>
+          <div className="flex items-center gap-2">
+            <AlertDialog
+              open={showDeleteDialog}
+              onOpenChange={setShowDeleteDialog}
+            >
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="hidden sm:flex"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 mr-2" />
+                  )}
+                  Hapus
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Hapus Item RAB</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Apakah Anda yakin ingin menghapus item RAB &ldquo;
+                    {formData.item_name}&rdquo;? Tindakan ini tidak dapat
+                    dibatalkan.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Menghapus...
+                      </>
+                    ) : (
+                      "Ya, Hapus"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <Link href={`/projects/${id}/rab`}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <X className="w-4 h-4 mr-2" />
+                Cancel
+              </Button>
+            </Link>
+          </div>
         </div>
-        <Button
-          variant="destructive"
-          onClick={handleDelete}
-          className="hidden sm:flex"
-        >
-          <Trash2 className="w-4 h-4 mr-2" />
-          Hapus
-        </Button>
       </div>
 
-      <form onSubmit={handleSubmit} className="max-w-2xl">
-        <Card>
+      <form onSubmit={handleSubmit} className="w-full">
+        <Card className="w-full pt-6 pb-6">
           <CardHeader>
-            <CardTitle>Detail Item RAB</CardTitle>
+            <CardTitle>Informasi Item RAB</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Item Name */}
             <div className="space-y-2">
               <Label htmlFor="item_name" className="text-sm font-medium">
-                Nama Item *
+                Nama Item <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="item_name"
@@ -163,7 +294,7 @@ export default function EditRABPage({ params }: EditRABPageProps) {
                 htmlFor="purchasing_source"
                 className="text-sm font-medium"
               >
-                Sumber Pembelian *
+                Sumber Pembelian <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="purchasing_source"
@@ -180,7 +311,7 @@ export default function EditRABPage({ params }: EditRABPageProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="quantity" className="text-sm font-medium">
-                  Kuantitas *
+                  Kuantitas <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="quantity"
@@ -196,7 +327,7 @@ export default function EditRABPage({ params }: EditRABPageProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="unit_price" className="text-sm font-medium">
-                  Harga Satuan (Rp) *
+                  Harga Satuan (Rp) <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="unit_price"
@@ -238,16 +369,15 @@ export default function EditRABPage({ params }: EditRABPageProps) {
             {/* Purchase Link */}
             <div className="space-y-2">
               <Label htmlFor="purchase_link" className="text-sm font-medium">
-                Link Pembelian
+                Link Pembelian / Nama Penjual
               </Label>
               <Input
                 id="purchase_link"
-                type="url"
                 value={formData.purchase_link}
                 onChange={(e) =>
                   handleInputChange("purchase_link", e.target.value)
                 }
-                placeholder="https://..."
+                placeholder="https://... atau Nama Penjual"
               />
             </div>
 
@@ -256,18 +386,21 @@ export default function EditRABPage({ params }: EditRABPageProps) {
               <Label htmlFor="status" className="text-sm font-medium">
                 Status
               </Label>
-              <select
-                id="status"
+              <Select
                 value={formData.status}
-                onChange={(e) => handleInputChange("status", e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onValueChange={(value) => handleInputChange("status", value)}
               >
-                <option value="planning">Perencanaan</option>
-                <option value="pending">Pending</option>
-                <option value="ordered">Dipesan</option>
-                <option value="delivered">Diterima</option>
-                <option value="completed">Selesai</option>
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Pilih status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="planning">Perencanaan</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="ordered">Dipesan</SelectItem>
+                  <SelectItem value="delivered">Diterima</SelectItem>
+                  <SelectItem value="completed">Selesai</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Total Calculation */}
@@ -283,37 +416,77 @@ export default function EditRABPage({ params }: EditRABPageProps) {
                 {formatCurrency(formData.shipping_tax)}
               </div>
             </div>
-
-            {/* Form Actions */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <Button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Simpan Perubahan
-              </Button>
-
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleDelete}
-                className="sm:hidden"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Hapus
-              </Button>
-
-              <Link
-                href={`/projects/${id}/rab`}
-                className="flex-1 sm:flex-none"
-              >
-                <Button type="button" variant="outline" className="w-full">
-                  Batal
-                </Button>
-              </Link>
-            </div>
           </CardContent>
+
+          <CardFooter className="flex justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+              disabled={isSubmitting || isDeleting}
+            >
+              Batal
+            </Button>
+            <div className="flex items-center gap-2">
+              <AlertDialog
+                open={showDeleteDialog}
+                onOpenChange={setShowDeleteDialog}
+              >
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="sm:hidden"
+                    disabled={isDeleting || isSubmitting}
+                  >
+                    {isDeleting ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4 mr-2" />
+                    )}
+                    Hapus
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Hapus Item RAB</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Apakah Anda yakin ingin menghapus item RAB &ldquo;
+                      {formData.item_name}&rdquo;? Tindakan ini tidak dapat
+                      dibatalkan.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      {isDeleting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Menghapus...
+                        </>
+                      ) : (
+                        "Ya, Hapus"
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button type="submit" disabled={isSubmitting || isDeleting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  "Simpan Perubahan"
+                )}
+              </Button>
+            </div>
+          </CardFooter>
         </Card>
       </form>
     </div>

@@ -55,7 +55,7 @@ export default function LoginForm() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <Card className="border-0 shadow-lg">
+      <Card className="border-0 shadow-lg pt-6 pb-6">
         <CardHeader className="space-y-1">
           <div className="flex items-center space-x-2 mb-4">
             <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
@@ -84,7 +84,7 @@ export default function LoginForm() {
               <Input
                 id="email"
                 type="email"
-                placeholder="example@gmail.com"
+                placeholder="username@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

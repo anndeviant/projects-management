@@ -12,7 +12,6 @@ import {
   DollarSign,
   ExternalLink,
   Edit,
-  Trash2,
   Loader2,
 } from "lucide-react";
 import { useRAB } from "@/hooks/use-rab";
@@ -40,6 +39,74 @@ export default function RABPage() {
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const getPlatformInfo = (purchaseLink: string | null) => {
+    if (!purchaseLink) return null;
+
+    const link = purchaseLink.toLowerCase();
+
+    // Check if it's a URL
+    const urlPattern = /^(https?:\/\/|www\.)/;
+    if (!urlPattern.test(purchaseLink)) {
+      // Not a URL, treat as seller name
+      return {
+        isUrl: false,
+        displayName: purchaseLink,
+        url: null,
+      };
+    }
+
+    // Detect platform based on URL
+    if (link.includes("shopee")) {
+      return {
+        isUrl: true,
+        displayName: "Shopee",
+        url: purchaseLink,
+      };
+    } else if (link.includes("tokopedia")) {
+      return {
+        isUrl: true,
+        displayName: "Tokopedia",
+        url: purchaseLink,
+      };
+    } else if (link.includes("bukalapak")) {
+      return {
+        isUrl: true,
+        displayName: "Bukalapak",
+        url: purchaseLink,
+      };
+    } else if (link.includes("lazada")) {
+      return {
+        isUrl: true,
+        displayName: "Lazada",
+        url: purchaseLink,
+      };
+    } else if (link.includes("blibli")) {
+      return {
+        isUrl: true,
+        displayName: "Blibli",
+        url: purchaseLink,
+      };
+    } else if (link.includes("amazon")) {
+      return {
+        isUrl: true,
+        displayName: "Amazon",
+        url: purchaseLink,
+      };
+    } else if (link.includes("alibaba")) {
+      return {
+        isUrl: true,
+        displayName: "Alibaba",
+        url: purchaseLink,
+      };
+    } else {
+      return {
+        isUrl: true,
+        displayName: "Link",
+        url: purchaseLink,
+      };
+    }
   };
 
   const getStatusBadge = (status: string | undefined) => {
@@ -77,7 +144,7 @@ export default function RABPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="px-4 pb-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -200,16 +267,33 @@ export default function RABPage() {
                       <td className="py-3 px-4">
                         <div>
                           <p className="font-medium">{item.item_name}</p>
-                          {item.purchase_link && (
-                            <a
-                              href={item.purchase_link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1 mt-1"
-                            >
-                              Link <ExternalLink className="w-3 h-3" />
-                            </a>
-                          )}
+                          {item.purchase_link &&
+                            (() => {
+                              const platformInfo = getPlatformInfo(
+                                item.purchase_link
+                              );
+                              if (!platformInfo) return null;
+
+                              if (platformInfo.isUrl) {
+                                return (
+                                  <a
+                                    href={platformInfo.url!}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1 mt-1"
+                                  >
+                                    {platformInfo.displayName}{" "}
+                                    <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                );
+                              } else {
+                                return (
+                                  <span className="text-gray-600 text-sm mt-1 block">
+                                    {platformInfo.displayName}
+                                  </span>
+                                );
+                              }
+                            })()}
                         </div>
                       </td>
                       <td className="py-3 px-4 text-sm">
@@ -232,13 +316,6 @@ export default function RABPage() {
                               <Edit className="w-4 h-4" />
                             </Button>
                           </Link>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
                         </div>
                       </td>
                     </tr>

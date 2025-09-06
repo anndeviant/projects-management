@@ -241,14 +241,27 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             {selectedProject && (
               <>
                 <div className="border-t border-gray-200 my-4"></div>
-                <div className="px-2 py-1">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Current Project
-                  </p>
-                  <p className="text-sm font-medium text-gray-900 truncate mt-1">
-                    {selectedProject.name}
-                  </p>
-                </div>
+                <Link href={`/projects/${selectedProject.id}`}>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start p-6 mb-2 bg-gray-100/70 hover:bg-gray-100 border border-gray-200/50 rounded-md",
+                      pathname.startsWith(`/projects/${selectedProject.id}`)
+                        ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                        : "text-gray-700 hover:text-gray-900"
+                    )}
+                  >
+                    <FolderOpen className="mr-3 h-4 w-4 flex-shrink-0 mt-1" />
+                    <div className="flex flex-col items-start w-full">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Current Project
+                      </p>
+                      <p className="text-sm font-medium truncate mt-1 w-full text-left">
+                        {selectedProject.name}
+                      </p>
+                    </div>
+                  </Button>
+                </Link>
 
                 {getNavigationWithProjectId().map((item) => (
                   <div key={item.name}>

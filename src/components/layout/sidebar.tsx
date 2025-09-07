@@ -98,8 +98,20 @@ const projectSpecificNavigation = [
   },
   {
     name: "Invoices",
-    href: "/projects/[id]/invoices",
+    href: "#",
     icon: FileText,
+    children: [
+      {
+        name: "All Invoices",
+        href: "/projects/[id]/invoices",
+        icon: FileText,
+      },
+      {
+        name: "New Invoice",
+        href: "/projects/[id]/invoices/new",
+        icon: Plus,
+      },
+    ],
   },
 ];
 

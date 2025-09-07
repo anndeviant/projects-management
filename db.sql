@@ -20,17 +20,12 @@ CREATE TABLE public.invoices (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   project_id uuid DEFAULT gen_random_uuid(),
-  transaction_id uuid DEFAULT gen_random_uuid(),
-  invoice_number character varying DEFAULT '100'::character varying,
-  invoice_date date,
-  due_date date,
+  description text,
+  price numeric,
+  quantity bigint,
   total_amount numeric,
-  status character varying DEFAULT '50'::character varying,
-  file_url text,
-  notes text,
   CONSTRAINT invoices_pkey PRIMARY KEY (id),
-  CONSTRAINT invoices_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id),
-  CONSTRAINT invoices_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transactions(id)
+  CONSTRAINT invoices_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(id)
 );
 CREATE TABLE public.projects (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

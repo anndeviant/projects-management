@@ -253,7 +253,7 @@ export default function NewProjectPage() {
                             selected={field.value}
                             onSelect={field.onChange}
                             disabled={(date) => date < new Date("1900-01-01")}
-                            initialFocus
+                            autoFocus
                           />
                         </PopoverContent>
                       </Popover>
@@ -300,7 +300,7 @@ export default function NewProjectPage() {
                                 ? date < watchedValues.start_date
                                 : false)
                             }
-                            initialFocus
+                            autoFocus
                           />
                         </PopoverContent>
                       </Popover>

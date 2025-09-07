@@ -239,7 +239,7 @@ export default function NewTransactionPage() {
                               }
                             }}
                             disabled={(date) => date > new Date()}
-                            initialFocus
+                            autoFocus
                           />
                         </PopoverContent>
                       </Popover>

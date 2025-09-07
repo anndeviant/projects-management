@@ -186,7 +186,7 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 lg:hidden">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 lg:hidden flex-shrink-0">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">PM</span>
@@ -200,156 +200,161 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
             </Button>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
-            {/* Static Navigation */}
-            {staticNavigation.map((item) => (
-              <div key={item.name}>
-                {item.children ? (
-                  <div>
-                    <Button
-                      variant="ghost"
-                      className={cn(
-                        "w-full justify-start text-left font-medium",
-                        expandedItems.includes(item.name)
-                          ? "bg-gray-100 text-gray-900"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                      )}
-                      onClick={() => toggleExpanded(item.name)}
-                    >
-                      <item.icon className="mr-3 h-5 w-5" />
-                      {item.name}
-                    </Button>
+          {/* Navigation - Scrollable */}
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400">
+              {/* Static Navigation */}
+              {staticNavigation.map((item) => (
+                <div key={item.name}>
+                  {item.children ? (
+                    <div>
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-start text-left font-medium",
+                          expandedItems.includes(item.name)
+                            ? "bg-gray-100 text-gray-900"
+                            : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                        onClick={() => toggleExpanded(item.name)}
+                      >
+                        <item.icon className="mr-3 h-5 w-5" />
+                        {item.name}
+                      </Button>
 
-                    {expandedItems.includes(item.name) && (
-                      <div className="ml-8 mt-2 space-y-1">
-                        {item.children.map((child) => (
-                          <Link key={child.href} href={child.href}>
-                            <Button
-                              variant="ghost"
-                              className={cn(
-                                "w-full justify-start text-sm",
-                                pathname === child.href
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                              )}
-                            >
-                              <child.icon className="mr-3 h-4 w-4" />
-                              {child.name}
-                            </Button>
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <Link href={item.href}>
+                      {expandedItems.includes(item.name) && (
+                        <div className="ml-8 mt-2 space-y-1">
+                          {item.children.map((child) => (
+                            <Link key={child.href} href={child.href}>
+                              <Button
+                                variant="ghost"
+                                className={cn(
+                                  "w-full justify-start text-sm",
+                                  pathname === child.href
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                                )}
+                              >
+                                <child.icon className="mr-3 h-4 w-4" />
+                                {child.name}
+                              </Button>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Link href={item.href}>
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-start",
+                          pathname === item.href
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                      >
+                        <item.icon className="mr-3 h-5 w-5" />
+                        {item.name}
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              ))}
+
+              {/* Project-specific navigation separator and content */}
+              {selectedProject && (
+                <>
+                  <div className="border-t border-gray-200 my-4"></div>
+                  <Link href={`/projects/${selectedProject.id}`}>
                     <Button
                       variant="ghost"
                       className={cn(
-                        "w-full justify-start",
-                        pathname === item.href
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                        "w-full justify-start p-7 mb-2 bg-gray-100/70 hover:bg-gray-100 border border-gray-200/50 rounded-md",
+                        pathname.startsWith(`/projects/${selectedProject.id}`)
+                          ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                          : "text-gray-700 hover:text-gray-900"
                       )}
                     >
-                      <item.icon className="mr-3 h-5 w-5" />
-                      {item.name}
+                      <FolderOpen className="mr-3 h-4 w-4 flex-shrink-0 mt-1" />
+                      <div className="flex flex-col items-start w-full">
+                        <p className="text-xs font-semibold text-black uppercase tracking-wider">
+                          Current Project
+                        </p>
+                        <p className="text-sm font-medium truncate mt-1 w-full text-left">
+                          {selectedProject.name}
+                        </p>
+                      </div>
                     </Button>
                   </Link>
-                )}
-              </div>
-            ))}
 
-            {/* Project-specific navigation separator and content */}
-            {selectedProject && (
-              <>
-                <div className="border-t border-gray-200 my-4"></div>
-                <Link href={`/projects/${selectedProject.id}`}>
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start p-7 mb-2 bg-gray-100/70 hover:bg-gray-100 border border-gray-200/50 rounded-md",
-                      pathname.startsWith(`/projects/${selectedProject.id}`)
-                        ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                        : "text-gray-700 hover:text-gray-900"
-                    )}
-                  >
-                    <FolderOpen className="mr-3 h-4 w-4 flex-shrink-0 mt-1" />
-                    <div className="flex flex-col items-start w-full">
-                      <p className="text-xs font-semibold text-black uppercase tracking-wider">
-                        Current Project
-                      </p>
-                      <p className="text-sm font-medium truncate mt-1 w-full text-left">
-                        {selectedProject.name}
-                      </p>
+                  {getNavigationWithProjectId().map((item) => (
+                    <div key={item.name}>
+                      {item.children ? (
+                        <div>
+                          <Button
+                            variant="ghost"
+                            className={cn(
+                              "w-full justify-start text-left font-medium",
+                              expandedItems.includes(item.name)
+                                ? "bg-gray-100 text-gray-900"
+                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                            )}
+                            onClick={() => toggleExpanded(item.name)}
+                          >
+                            <item.icon className="mr-3 h-5 w-5" />
+                            {item.name}
+                          </Button>
+
+                          {expandedItems.includes(item.name) && (
+                            <div className="ml-8 mt-2 space-y-1">
+                              {item.children.map((child) => (
+                                <Link key={child.href} href={child.href}>
+                                  <Button
+                                    variant="ghost"
+                                    className={cn(
+                                      "w-full justify-start text-sm",
+                                      pathname === child.href
+                                        ? "bg-emerald-100 text-emerald-700"
+                                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                                    )}
+                                  >
+                                    <child.icon className="mr-3 h-4 w-4" />
+                                    {child.name}
+                                  </Button>
+                                </Link>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <Link href={item.href}>
+                          <Button
+                            variant="ghost"
+                            className={cn(
+                              "w-full justify-start",
+                              pathname === item.href
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                            )}
+                          >
+                            <item.icon className="mr-3 h-5 w-5" />
+                            {item.name}
+                          </Button>
+                        </Link>
+                      )}
                     </div>
-                  </Button>
-                </Link>
+                  ))}
+                </>
+              )}
 
-                {getNavigationWithProjectId().map((item) => (
-                  <div key={item.name}>
-                    {item.children ? (
-                      <div>
-                        <Button
-                          variant="ghost"
-                          className={cn(
-                            "w-full justify-start text-left font-medium",
-                            expandedItems.includes(item.name)
-                              ? "bg-gray-100 text-gray-900"
-                              : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                          )}
-                          onClick={() => toggleExpanded(item.name)}
-                        >
-                          <item.icon className="mr-3 h-5 w-5" />
-                          {item.name}
-                        </Button>
+              {/* Add some bottom padding to ensure content doesn't get cut off */}
+              <div className="h-4"></div>
+            </nav>
+          </div>
 
-                        {expandedItems.includes(item.name) && (
-                          <div className="ml-8 mt-2 space-y-1">
-                            {item.children.map((child) => (
-                              <Link key={child.href} href={child.href}>
-                                <Button
-                                  variant="ghost"
-                                  className={cn(
-                                    "w-full justify-start text-sm",
-                                    pathname === child.href
-                                      ? "bg-emerald-100 text-emerald-700"
-                                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                                  )}
-                                >
-                                  <child.icon className="mr-3 h-4 w-4" />
-                                  {child.name}
-                                </Button>
-                              </Link>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <Link href={item.href}>
-                        <Button
-                          variant="ghost"
-                          className={cn(
-                            "w-full justify-start",
-                            pathname === item.href
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                          )}
-                        >
-                          <item.icon className="mr-3 h-5 w-5" />
-                          {item.name}
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
-                ))}
-              </>
-            )}
-          </nav>
-
-          {/* Footer */}
-          <div className="p-4 border-t border-gray-200">
+          {/* Footer - Always visible at bottom */}
+          <div className="p-4 border-t border-gray-200 flex-shrink-0 bg-white">
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button

@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Users } from "lucide-react";
-import { signIn } from "@/lib/utils/auth";
+import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
 export default function LoginForm() {
@@ -17,15 +17,30 @@ export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Use the singleton supabase client
+  const supabase = createClient();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      await signIn(email, password);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
       toast.success("Login berhasil!");
-      router.push("/dashboard");
+
+      // Check if there's a redirect parameter
+      const redirectTo = searchParams.get("redirect") || "/dashboard";
+      router.push(redirectTo);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Login gagal");
     } finally {
@@ -34,12 +49,13 @@ export default function LoginForm() {
   };
 
   const handleGuestLogin = () => {
-    router.push("/");
+    // Redirect to root with guest parameter
+    router.push("/?guest=true");
   };
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <Card className="border-0 shadow-lg">
+      <Card className="border-0 shadow-lg pt-6 pb-6">
         <CardHeader className="space-y-1">
           <div className="flex items-center space-x-2 mb-4">
             <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center">
@@ -68,7 +84,7 @@ export default function LoginForm() {
               <Input
                 id="email"
                 type="email"
-                placeholder="example@gmail.com"
+                placeholder="username@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

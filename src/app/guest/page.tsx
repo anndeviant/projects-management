@@ -42,7 +42,7 @@ import { useTransactions } from "@/hooks/use-transactions";
 import { formatCurrency, formatDateShort } from "@/lib/utils/format";
 import type { Project } from "@/lib/types";
 
-export default function LandingPage() {
+export default function GuestPage() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);

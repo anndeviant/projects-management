@@ -1,9 +1,39 @@
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { Invoice } from '@/lib/types/invoice';
 import { Project } from '@/lib/types/project';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { formatCurrency } from './format';
+
+// Helper function to load image as base64
+const loadImageAsBase64 = (src: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                reject(new Error('Could not get canvas context'));
+                return;
+            }
+
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            try {
+                const dataURL = canvas.toDataURL('image/jpeg', 0.8);
+                resolve(dataURL);
+            } catch (err) {
+                reject(err);
+            }
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = src;
+    });
+};
 
 export const generateInvoicePDF = async (
     invoiceItems: Invoice[],
@@ -41,175 +71,264 @@ export const generateInvoicePDF = async (
         // Colors
         const primaryColor = '#10b981'; // emerald-600
         const textColor = '#1f2937'; // gray-800
+        const grayColor = '#6b7280'; // gray-500
 
-        // Helper function to add text with word wrap
-        const addWrappedText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number = 6) => {
-            const lines = doc.splitTextToSize(text, maxWidth);
-            lines.forEach((line: string, index: number) => {
-                doc.text(line, x, y + (index * lineHeight));
-            });
-            return y + (lines.length * lineHeight);
-        };
+        let currentY = 30;
 
-        // Header with company info
-        doc.setFontSize(24);
-        doc.setTextColor(primaryColor);
-        doc.text('INVOICE', margin, 30);
-
-        doc.setFontSize(10);
-        doc.setTextColor(textColor);
-        doc.text(project?.name || 'Project Name', margin, 40);
-
-        if (project?.customer_name) {
-            doc.text(`Customer: ${project.customer_name}`, margin, 46);
+        // === HEADER SECTION USING TABLE ===
+        // Create header table with logo, company info, and INVOICE
+        let logoBase64 = '';
+        try {
+            logoBase64 = await loadImageAsBase64('/images/logo-rs.jpg');
+        } catch (error) {
+            console.warn('Logo could not be loaded:', error);
         }
 
-        // Invoice details (right side)
-        const rightX = pageWidth - margin - 60;
-        doc.setFontSize(10);
-        doc.text(`Invoice #: ${invoiceNumber}`, rightX, 30);
+        // Prepare header table data
+        const headerTableData = [
+            [
+                logoBase64 ? 'LOGO' : '', // Placeholder for logo
+                'RS TechForge\nTechnology Services',
+                'INVOICE'
+            ]
+        ];
 
-        const formattedInvoiceDate = format(new Date(invoiceDate), 'dd MMMM yyyy', { locale: id });
-        doc.text(`Tanggal: ${formattedInvoiceDate}`, rightX, 36);
+        // Generate header table without borders
+        autoTable(doc, {
+            body: headerTableData,
+            startY: currentY - 5,
+            margin: { left: margin, right: margin },
+            styles: {
+                fontSize: 1, // Will be overridden per cell
+                textColor: [255, 255, 255], // White text (invisible)
+                lineColor: [255, 255, 255], // White lines (invisible)
+                lineWidth: 0,
+                cellPadding: 0,
+            },
+            columnStyles: {
+                0: { cellWidth: 20, halign: 'left' }, // Logo column
+                1: { cellWidth: 80, halign: 'left' }, // Company info column
+                2: { cellWidth: 70, halign: 'center' } // Invoice column
+            },
+            tableLineColor: [255, 255, 255], // White table lines (invisible)
+            tableLineWidth: 0,
+            theme: 'plain',
+            didDrawCell: function (data) {
+                if (data.column.index === 0 && logoBase64) {
+                    // Add logo in first column
+                    const logoSize = 15;
+                    doc.addImage(logoBase64, 'JPEG', data.cell.x + 2, data.cell.y + 2, logoSize, logoSize);
+                } else if (data.column.index === 1) {
+                    // Add company info in second column
+                    doc.setFontSize(18);
+                    doc.setTextColor(textColor);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('RS TechForge', data.cell.x + 2, data.cell.y + 8);
 
-        // Line separator
-        doc.setLineWidth(0.5);
-        doc.setDrawColor(200, 200, 200);
-        doc.line(margin, 60, pageWidth - margin, 60);
-
-        // Bill To section
-        let currentY = 75;
-        doc.setFontSize(12);
-        doc.setTextColor(primaryColor);
-        doc.text('Bill To:', margin, currentY);
-
-        currentY += 8;
-        doc.setFontSize(10);
-        doc.setTextColor(textColor);
-
-        if (project?.customer_name) {
-            doc.text(project.customer_name, margin, currentY);
-            currentY += 6;
-        }
-
-        if (project?.customer_desc) {
-            currentY = addWrappedText(project.customer_desc, margin, currentY, 80, 5);
-            currentY += 5;
-        }
-
-        // Project details section
-        currentY += 10;
-        doc.setFontSize(12);
-        doc.setTextColor(primaryColor);
-        doc.text('Project Details:', margin, currentY);
-
-        currentY += 8;
-        doc.setFontSize(10);
-        doc.setTextColor(textColor);
-        doc.text(`Project: ${project?.name || 'N/A'}`, margin, currentY);
-        currentY += 6;
-
-        if (project?.description) {
-            currentY = addWrappedText(`Description: ${project.description}`, margin, currentY, pageWidth - 2 * margin, 5);
-            currentY += 5;
-        }
-
-        // Invoice items table
-        currentY += 15;
-
-        // Table header
-        const tableStartY = currentY;
-        const tableWidth = pageWidth - 2 * margin;
-        const colWidths = [80, 25, 25, 30]; // Description, Price, Qty, Amount
-
-        doc.setFillColor(240, 240, 240);
-        doc.rect(margin, currentY, tableWidth, 10, 'F');
-
-        doc.setFontSize(10);
-        doc.setTextColor(textColor);
-        doc.text('Description', margin + 2, currentY + 6);
-        doc.text('Price', margin + colWidths[0] + 2, currentY + 6);
-        doc.text('Qty', margin + colWidths[0] + colWidths[1] + 2, currentY + 6);
-        doc.text('Amount', margin + colWidths[0] + colWidths[1] + colWidths[2] + 2, currentY + 6);
-
-        currentY += 10;
-
-        // Table rows (all invoice items)
-        let totalAmount = 0;
-        const rowHeight = 12;
-
-        invoiceItems.forEach((item, index) => {
-            // Alternate row colors
-            doc.setFillColor(index % 2 === 0 ? 255 : 250, index % 2 === 0 ? 255 : 250, index % 2 === 0 ? 255 : 250);
-            doc.rect(margin, currentY, tableWidth, rowHeight, 'F');
-
-            // Row content
-            doc.setFontSize(9);
-            doc.setTextColor(textColor);
-
-            // Description (with word wrap if needed)
-            const maxDescWidth = colWidths[0] - 4;
-            const descLines = doc.splitTextToSize(item.description, maxDescWidth);
-            doc.text(descLines[0], margin + 2, currentY + 7);
-            if (descLines.length > 1) {
-                doc.text('...', margin + 2, currentY + 11);
+                    doc.setFontSize(14);
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(grayColor);
+                    doc.text('Technology Services', data.cell.x + 2, data.cell.y + 16);
+                } else if (data.column.index === 2) {
+                    // Add INVOICE header in third column
+                    doc.setFontSize(48);
+                    doc.setTextColor(primaryColor);
+                    doc.setFont('helvetica', 'bold');
+                    const invoiceText = 'INVOICE';
+                    const textWidth = doc.getTextWidth(invoiceText);
+                    const centerX = data.cell.x + (data.cell.width - textWidth) / 2;
+                    doc.text(invoiceText, centerX, data.cell.y + 16);
+                }
             }
-
-            // Price
-            doc.text(formatCurrency(item.price), margin + colWidths[0] + 2, currentY + 7);
-
-            // Quantity
-            doc.text(item.quantity.toString(), margin + colWidths[0] + colWidths[1] + 2, currentY + 7);
-
-            // Amount
-            doc.text(formatCurrency(item.total_amount), margin + colWidths[0] + colWidths[1] + colWidths[2] + 2, currentY + 7);
-
-            totalAmount += item.total_amount;
-            currentY += rowHeight;
         });
 
-        // Draw table borders
-        doc.setLineWidth(0.1);
-        doc.setDrawColor(200, 200, 200);
-
-        // Outer border
-        const tableHeight = 10 + (invoiceItems.length * rowHeight);
-        doc.rect(margin, tableStartY, tableWidth, tableHeight);
-
-        // Vertical lines
-        doc.line(margin + colWidths[0], tableStartY, margin + colWidths[0], tableStartY + tableHeight);
-        doc.line(margin + colWidths[0] + colWidths[1], tableStartY, margin + colWidths[0] + colWidths[1], tableStartY + tableHeight);
-        doc.line(margin + colWidths[0] + colWidths[1] + colWidths[2], tableStartY, margin + colWidths[0] + colWidths[1] + colWidths[2], tableStartY + tableHeight);
-
-        // Header separator line
-        doc.line(margin, tableStartY + 10, pageWidth - margin, tableStartY + 10);
-
-        // Row separator lines
-        for (let i = 1; i <= invoiceItems.length; i++) {
-            const y = tableStartY + 10 + (i * rowHeight);
-            doc.line(margin, y, pageWidth - margin, y);
-        }
-
+        // Update currentY after header table
         currentY += 10;
 
-        // Total section
-        const totalSectionX = pageWidth - margin - 60;
-        doc.setFontSize(12);
+        // Invoice details on the right side - positioned with proper margin from edge
+        const rightSectionX = pageWidth - margin - 80; // More margin from right edge
+        let rightCurrentY = currentY + 20; // Move down from the INVOICE header
+
+        doc.setFontSize(11); // Increased from 10
+        doc.setTextColor(textColor);
+        doc.setFont('helvetica', 'normal');
+
+        doc.text('Invoice #:', rightSectionX, rightCurrentY);
+        doc.setFont('helvetica', 'bold');
+        doc.text(invoiceNumber, rightSectionX + 30, rightCurrentY);
+
+        rightCurrentY += 8; // Increased spacing
+        doc.setFont('helvetica', 'normal');
+        doc.text('Date:', rightSectionX, rightCurrentY);
+        doc.setFont('helvetica', 'bold');
+        const formattedInvoiceDate = format(new Date(invoiceDate), 'dd MMMM yyyy', { locale: id });
+        doc.text(formattedInvoiceDate, rightSectionX + 30, rightCurrentY);
+
+        rightCurrentY += 8; // Increased spacing
+        doc.setFont('helvetica', 'normal');
+        doc.text('Customer:', rightSectionX, rightCurrentY);
+        doc.setFont('helvetica', 'bold');
+        doc.text(project?.customer_name || 'N/A', rightSectionX + 30, rightCurrentY);
+
+        // Add project title before separator line
+        currentY = Math.max(rightCurrentY + 10, 80);
+        doc.setFontSize(14); // Increased from 12
         doc.setTextColor(primaryColor);
-        doc.text('Total:', totalSectionX, currentY);
-        doc.text(formatCurrency(totalAmount), totalSectionX + 20, currentY);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Proyek:', margin, currentY);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(textColor);
+        doc.text(project?.name || 'N/A', margin + 22, currentY); // Reduced from 30 to 22
 
-        // Add border around total
+        // Separator line
+        currentY += 10;
         doc.setLineWidth(0.5);
-        doc.setDrawColor(primaryColor);
-        doc.rect(totalSectionX - 5, currentY - 8, 65, 12);
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, currentY, pageWidth - margin, currentY);
 
-        // Footer
-        const footerY = pageHeight - 30;
-        doc.setFontSize(8);
+        // === MAIN TABLE SECTION ===
+        currentY += 10;
+
+        // Calculate totals
+        let subtotal = 0;
+        invoiceItems.forEach(item => {
+            subtotal += item.total_amount;
+        });
+
+        const tax = subtotal * 0.11; // 11% tax
+        const total = subtotal + tax;
+
+        // Prepare table data
+        const tableData = invoiceItems.map(item => [
+            item.description,
+            formatCurrency(item.price),
+            item.quantity.toString(),
+            formatCurrency(item.total_amount)
+        ]);
+
+        // Generate table using jspdf-autotable
+        autoTable(doc, {
+            head: [['Description', 'Price', 'Qty.', 'Amount']],
+            body: tableData,
+            startY: currentY,
+            margin: { left: margin, right: margin },
+            styles: {
+                fontSize: 11, // Increased from 10
+                textColor: textColor,
+                lineColor: [200, 200, 200],
+                lineWidth: 0.1,
+            },
+            headStyles: {
+                fillColor: [240, 240, 240],
+                textColor: textColor,
+                fontStyle: 'bold',
+                halign: 'left', // All headers aligned left
+                fontSize: 12, // Slightly larger for headers
+            },
+            columnStyles: {
+                0: { cellWidth: 90, halign: 'left' }, // Description - wider and left aligned
+                1: { cellWidth: 30, halign: 'left' }, // Price - left aligned
+                2: { cellWidth: 20, halign: 'left' }, // Qty - left aligned
+                3: { cellWidth: 30, halign: 'left' } // Amount - left aligned
+            },
+            alternateRowStyles: {
+                fillColor: [250, 250, 250]
+            },
+            tableLineColor: [200, 200, 200],
+            tableLineWidth: 0.1,
+            tableWidth: 'wrap', // Remove extra space
+        });
+
+        // Estimate Y position after the table (header + items + spacing)
+        currentY = currentY + 15 + (invoiceItems.length * 10); // Reduced spacing after table
+
+        // Separator line after table
+        doc.setLineWidth(0.5);
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, currentY, pageWidth - margin, currentY);
+
+        currentY += 15; // Reduced from 18 to 15 for more balanced spacing
+
+        // === FOOTER SECTION ===
+        // Left side - Contact info
+        doc.setFontSize(14); // Increased from 12
+        doc.setTextColor(primaryColor);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Contact Info:', margin, currentY);
+
+        currentY += 8;
+        doc.setFontSize(11); // Increased from 10
+        doc.setTextColor(textColor);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Rahul Subagio', margin, currentY);
+
+        currentY += 7;
+        doc.text('rahulsubagio99@gmail.com', margin, currentY);
+
+        currentY += 7;
+        doc.text('+6282296365028', margin, currentY);
+
+        // Right side - Totals aligned with invoice details section
+        const totalsX = rightSectionX; // Use same X position as invoice details for consistency
+        let totalsY = currentY - 24; // Start from same level as Info section
+
+        doc.setFontSize(11); // Increased from 10
+        doc.setTextColor(textColor);
+        doc.setFont('helvetica', 'normal');
+
+        // Calculate right alignment position for currency values
+        const currencyAlignX = pageWidth - margin - 10; // Right align the currency values
+
+        // Subtotal
+        doc.text('Subtotal', totalsX, totalsY);
+        doc.text(':', totalsX + 35, totalsY);
+        doc.setFont('helvetica', 'bold');
+        const subtotalText = formatCurrency(subtotal);
+        const subtotalWidth = doc.getTextWidth(subtotalText);
+        doc.text(subtotalText, currencyAlignX - subtotalWidth, totalsY);
+
+        totalsY += 8; // Increased spacing
+        doc.setFont('helvetica', 'normal');
+        doc.text('Tax (11%)', totalsX, totalsY);
+        doc.text(':', totalsX + 35, totalsY);
+        doc.setFont('helvetica', 'bold');
+        const taxText = formatCurrency(tax);
+        const taxWidth = doc.getTextWidth(taxText);
+        doc.text(taxText, currencyAlignX - taxWidth, totalsY);
+
+        totalsY += 8; // Increased spacing
+        // Total (without background highlight)
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(primaryColor);
+        doc.setFontSize(12); // Slightly larger for total
+        doc.text('Total', totalsX, totalsY);
+        doc.text(':', totalsX + 35, totalsY);
+        const totalText = formatCurrency(total);
+        const totalWidth = doc.getTextWidth(totalText);
+        doc.text(totalText, currencyAlignX - totalWidth, totalsY);
+
+        // Thank you message at the bottom
+        const thankYouY = pageHeight - 30;
+        doc.setFontSize(14); // Increased from 12
+        doc.setTextColor(primaryColor);
+        doc.setFont('helvetica', 'bold');
+        const thankYouText = 'Terima kasih atas kepercayaan Anda!';
+        const thankYouWidth = doc.getTextWidth(thankYouText);
+        doc.text(thankYouText, (pageWidth - thankYouWidth) / 2, thankYouY);
+
+        // doc.setFontSize(11); // Increased from 10
+        // doc.setTextColor(grayColor);
+        // doc.setFont('helvetica', 'normal');
+        // const appreciationText = 'Kami sangat menghargai kerjasama yang baik ini.';
+        // const appreciationWidth = doc.getTextWidth(appreciationText);
+        // doc.text(appreciationText, (pageWidth - appreciationWidth) / 2, thankYouY + 7);
+
+        // Footer with generation info
+        const footerY = pageHeight - 15;
+        doc.setFontSize(9); // Increased from 8
         doc.setTextColor(150, 150, 150);
         doc.text(`Generated on ${format(new Date(), 'dd MMMM yyyy HH:mm', { locale: id })}`, margin, footerY);
-        doc.text('Project Management System', pageWidth - margin - 40, footerY);
+        doc.text('RS TechForge Technology Services', pageWidth - margin - 45, footerY);
 
         // Generate filename
         const filename = `invoice-${invoiceNumber}-${format(new Date(), 'yyyyMMdd')}.pdf`;

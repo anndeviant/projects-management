@@ -62,6 +62,74 @@ export default function GuestPage() {
     balance,
   } = useTransactions(selectedProject?.id || "");
 
+  const getPlatformInfo = (purchaseLink: string | null) => {
+    if (!purchaseLink) return null;
+
+    const link = purchaseLink.toLowerCase();
+
+    // Check if it's a URL
+    const urlPattern = /^(https?:\/\/|www\.)/;
+    if (!urlPattern.test(purchaseLink)) {
+      // Not a URL, treat as seller name
+      return {
+        isUrl: false,
+        displayName: purchaseLink,
+        url: null,
+      };
+    }
+
+    // Detect platform based on URL
+    if (link.includes("shopee")) {
+      return {
+        isUrl: true,
+        displayName: "Shopee",
+        url: purchaseLink,
+      };
+    } else if (link.includes("tokopedia")) {
+      return {
+        isUrl: true,
+        displayName: "Tokopedia",
+        url: purchaseLink,
+      };
+    } else if (link.includes("bukalapak")) {
+      return {
+        isUrl: true,
+        displayName: "Bukalapak",
+        url: purchaseLink,
+      };
+    } else if (link.includes("lazada")) {
+      return {
+        isUrl: true,
+        displayName: "Lazada",
+        url: purchaseLink,
+      };
+    } else if (link.includes("blibli")) {
+      return {
+        isUrl: true,
+        displayName: "Blibli",
+        url: purchaseLink,
+      };
+    } else if (link.includes("amazon")) {
+      return {
+        isUrl: true,
+        displayName: "Amazon",
+        url: purchaseLink,
+      };
+    } else if (link.includes("alibaba")) {
+      return {
+        isUrl: true,
+        displayName: "Alibaba",
+        url: purchaseLink,
+      };
+    } else {
+      return {
+        isUrl: true,
+        displayName: "Link",
+        url: purchaseLink,
+      };
+    }
+  };
+
   // Filter projects based on search query
   const filteredProjects = useMemo(() => {
     if (!searchQuery.trim()) return projects;
@@ -278,16 +346,32 @@ export default function GuestPage() {
                                   <p className="font-medium text-gray-900">
                                     {item.item_name}
                                   </p>
-                                  {item.purchase_link && (
-                                    <a
-                                      href={item.purchase_link}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 hover:underline text-sm"
-                                    >
-                                      Lihat Link →
-                                    </a>
-                                  )}
+                                  {item.purchase_link &&
+                                    (() => {
+                                      const platformInfo = getPlatformInfo(
+                                        item.purchase_link
+                                      );
+                                      if (!platformInfo) return null;
+
+                                      if (platformInfo.isUrl) {
+                                        return (
+                                          <a
+                                            href={platformInfo.url!}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-blue-600 hover:underline text-sm"
+                                          >
+                                            {platformInfo.displayName} →
+                                          </a>
+                                        );
+                                      } else {
+                                        return (
+                                          <span className="text-gray-600 text-sm">
+                                            {platformInfo.displayName}
+                                          </span>
+                                        );
+                                      }
+                                    })()}
                                 </div>
                               </td>
                               <td className="py-3 px-4 text-gray-700">
